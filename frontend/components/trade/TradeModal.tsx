@@ -34,7 +34,7 @@ export function TradeModal({ isOpen, onClose, action, domain, price, walletAddre
       })
 
       if (result.success) {
-        setTransactionHash(result.transaction_hash)
+        setTransactionHash(result.transaction_hash || null)
         toast.success(`${action === 'buy' ? 'Purchase' : 'Sale'} initiated successfully!`)
       } else {
         throw new Error(result.error || 'Trade execution failed')

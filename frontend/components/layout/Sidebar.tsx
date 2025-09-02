@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import Image from 'next/image'
 
 const menuItems = [
   {
@@ -67,8 +68,14 @@ export function Sidebar() {
           {/* Header */}
           <div className="flex h-16 items-center justify-between px-6 border-b border-border">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">D</span>
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/DomaAdvisor.png" 
+                  alt="Doma Advisor Logo" 
+                  width={32} 
+                  height={32}
+                  className="w-8 h-8 object-contain"
+                />
               </div>
               <span className="font-semibold text-lg">Doma Advisor</span>
             </div>

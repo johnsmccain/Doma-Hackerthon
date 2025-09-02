@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { Button } from '@/components/ui/Button'
 import { Settings, User, Shield, Bell, Palette } from 'lucide-react'
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const [isConnected, setIsConnected] = useState(false)
   const [walletAddress, setWalletAddress] = useState<string>('')
   const [riskProfile, setRiskProfile] = useState('moderate')
@@ -116,6 +116,36 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* Security Settings */}
+              <div className="card p-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Shield className="h-5 w-5" />
+                  <h3 className="text-lg font-semibold">Security Settings</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Two-Factor Authentication</h4>
+                      <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      Enable
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Session Management</h4>
+                      <p className="text-sm text-muted-foreground">Manage active sessions</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      View
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               {/* Notification Settings */}
               <div className="card p-6">
                 <div className="flex items-center space-x-2 mb-4">
@@ -126,52 +156,26 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Price Alerts</p>
-                      <p className="text-sm text-muted-foreground">Get notified when domain prices change</p>
+                      <h4 className="font-medium">Price Alerts</h4>
+                      <p className="text-sm text-muted-foreground">Get notified of price changes</p>
                     </div>
                     <input type="checkbox" defaultChecked className="rounded" />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Market Updates</p>
-                      <p className="text-sm text-muted-foreground">Receive market trend notifications</p>
+                      <h4 className="font-medium">Market Updates</h4>
+                      <p className="text-sm text-muted-foreground">Receive market analysis</p>
                     </div>
                     <input type="checkbox" defaultChecked className="rounded" />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Recommendations</p>
-                      <p className="text-sm text-muted-foreground">New investment recommendations</p>
+                      <h4 className="font-medium">Portfolio Reports</h4>
+                      <p className="text-sm text-muted-foreground">Weekly portfolio summaries</p>
                     </div>
-                    <input type="checkbox" defaultChecked className="rounded" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Security Settings */}
-              <div className="card p-6">
-                <div className="flex items-center space-x-2 mb-4">
-                  <Shield className="h-5 w-5" />
-                  <h3 className="text-lg font-semibold">Security</h3>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
-                    </div>
-                    <Button variant="outline" size="sm">Enable</Button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Session Management</p>
-                      <p className="text-sm text-muted-foreground">Manage active sessions</p>
-                    </div>
-                    <Button variant="outline" size="sm">View</Button>
+                    <input type="checkbox" className="rounded" />
                   </div>
                 </div>
               </div>
@@ -193,20 +197,20 @@ export default function SettingsPage() {
                     </select>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Compact Mode</p>
-                      <p className="text-sm text-muted-foreground">Use compact layout</p>
-                    </div>
-                    <input type="checkbox" className="rounded" />
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Currency</label>
+                    <select className="w-full p-2 border border-border rounded-lg bg-background">
+                      <option value="usd">USD</option>
+                      <option value="eur">EUR</option>
+                      <option value="gbp">GBP</option>
+                    </select>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Save Button */}
-            <div className="mt-6 flex justify-end">
-              <Button onClick={handleSaveSettings} className="px-6">
+            <div className="flex justify-end mt-6">
+              <Button onClick={handleSaveSettings}>
                 Save Settings
               </Button>
             </div>
@@ -214,5 +218,20 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SettingsPageContent />
+    </Suspense>
   )
 }

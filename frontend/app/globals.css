@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -47,55 +46,123 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 94.1%;
   }
+
+* {
+  border-color: hsl(var(--border));
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
   body {
-    @apply bg-background text-foreground;
-  }
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
-  }
-  
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
-  }
-  
-  .btn-destructive {
-    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
-  }
-  
-  .card {
-    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
-  }
-  
-  .input {
-    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  
-  .domain-score-high {
-    @apply text-domain-success;
-  }
-  
-  .domain-score-medium {
-    @apply text-domain-warning;
-  }
-  
-  .domain-score-low {
-    @apply text-domain-danger;
-  }
-  
-  .gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-  
-  .glass-effect {
-    @apply backdrop-blur-sm bg-white/10 border border-white/20;
-  }
+/* Animated blob effects */
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+.animate-blob { animation: blob 7s infinite; }
+.animation-delay-2000 { animation-delay: 2s; }
+.animation-delay-4000 { animation-delay: 4s; }
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+
+/* Pulse animation */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse-slow { animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+/* Gradient text animation */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-gradient { background-size: 200% 200%; animation: gradient-shift 3s ease infinite; }
+
+/* RainbowKit Custom Styling for Dark Theme */
+[data-rk] {
+  --rk-colors-accentColor: #8b5cf6 !important;
+  --rk-colors-accentColorForeground: #ffffff !important;
+  --rk-colors-connectButtonBackground: rgba(139, 92, 246, 0.1) !important;
+  --rk-colors-connectButtonText: #ffffff !important;
+  --rk-colors-modalBackground: #111827 !important;
+  --rk-colors-modalText: #ffffff !important;
+  --rk-colors-modalTextSecondary: rgba(255, 255, 255, 0.7) !important;
+  --rk-colors-generalBorder: rgba(255, 255, 255, 0.1) !important;
+  --rk-colors-modalBorder: rgba(255, 255, 255, 0.1) !important;
+  --rk-colors-modalBackdrop: rgba(0, 0, 0, 0.7) !important;
+  --rk-colors-connectButtonInnerBackground: rgba(139, 92, 246, 0.1) !important;
+  --rk-colors-actionButtonBorder: rgba(255, 255, 255, 0.1) !important;
+  --rk-colors-actionButtonSecondaryBackground: rgba(255, 255, 255, 0.05) !important;
+  --rk-colors-menuItemBackground: rgba(255, 255, 255, 0.05) !important;
+  --rk-colors-profileAction: rgba(139, 92, 246, 0.1) !important;
+  --rk-colors-profileActionHover: rgba(139, 92, 246, 0.2) !important;
+  --rk-colors-profileForeground: rgba(255, 255, 255, 0.05) !important;
+  --rk-colors-selectedOptionBorder: rgba(139, 92, 246, 0.3) !important;
+  --rk-colors-closeButton: rgba(255, 255, 255, 0.7) !important;
+  --rk-colors-closeButtonBackground: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Ensure ConnectButton is visible and styled */
+[data-rk] button[data-testid="connect-button"] {
+  background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+  min-height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+[data-rk] button[data-testid="connect-button"]:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4) !important;
+}
+
+/* RainbowKit modal styling */
+[data-rk] [data-testid="rk-connect-modal"] {
+  background: #111827 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+}
+
+/* RainbowKit wallet list styling */
+[data-rk] [data-testid="rk-connect-modal"] [role="dialog"] {
+  background: #111827 !important;
+  color: white !important;
+}
+
+/* Ensure RainbowKit components are visible */
+[data-rk] * {
+  color-scheme: dark !important;
+}
+
+/* Fix for RainbowKit button visibility */
+[data-rk] button {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Override any hidden states */
+[data-rk] [style*="display: none"] {
+  display: block !important;
+}
+
+[data-rk] [style*="visibility: hidden"] {
+  visibility: visible !important;
 }

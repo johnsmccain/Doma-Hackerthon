@@ -5,11 +5,115 @@ from dotenv import load_dotenv
 import os
 import random
 import asyncio
+import httpx
 from typing import List, Dict, Any
 from pydantic import BaseModel
+import logging
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Cache for real data
+crypto_prices_cache = {}
+cache_timestamp = 0
+CACHE_DURATION = 300  # 5 minutes
+
+async def get_real_crypto_prices():
+    """Get real cryptocurrency prices from CoinGecko API."""
+    global crypto_prices_cache, cache_timestamp
+    current_time = asyncio.get_event_loop().time()
+    
+    # Return cached data if still valid
+    if current_time - cache_timestamp < CACHE_DURATION and crypto_prices_cache:
+        return crypto_prices_cache
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.coingecko.com/api/v3/simple/price",
+                params={
+                    "ids": "ethereum,matic-network,optimism,arbitrum,usd-coin,tether",
+                    "vs_currencies": "usd",
+                    "include_24hr_change": "true"
+                },
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                crypto_prices_cache = {
+                    "ETH": {"price": data.get("ethereum", {}).get("usd", 0), "change": data.get("ethereum", {}).get("usd_24h_change", 0)},
+                    "MATIC": {"price": data.get("matic-network", {}).get("usd", 0), "change": data.get("matic-network", {}).get("usd_24h_change", 0)},
+                    "OP": {"price": data.get("optimism", {}).get("usd", 0), "change": data.get("optimism", {}).get("usd_24h_change", 0)},
+                    "ARB": {"price": data.get("arbitrum", {}).get("usd", 0), "change": data.get("arbitrum", {}).get("usd_24h_change", 0)},
+                    "USDC": {"price": data.get("usd-coin", {}).get("usd", 0), "change": data.get("usd-coin", {}).get("usd_24h_change", 0)},
+                    "USDT": {"price": data.get("tether", {}).get("usd", 0), "change": data.get("tether", {}).get("usd_24h_change", 0)}
+                }
+                cache_timestamp = current_time
+                logger.info("Updated crypto prices cache")
+                return crypto_prices_cache
+            else:
+                logger.error(f"CoinGecko API error: {response.status_code}")
+                return {}
+                
+    except Exception as e:
+        logger.error(f"Error fetching crypto prices: {str(e)}")
+        return {}
+
+def calculate_realistic_domain_score(domain: str) -> Dict[str, Any]:
+    """Calculate a more realistic domain score based on actual domain characteristics."""
+    name = domain.split('.')[0] if '.' in domain else domain
+    tld = domain.split('.')[-1] if '.' in domain else ''
+    
+    # Base score factors
+    length_score = max(0, 100 - (len(name) - 3) * 5)  # 3 chars = 100, 20+ chars = 0
+    
+    # TLD popularity (realistic values)
+    tld_scores = {
+        'eth': 95, 'crypto': 90, 'nft': 85, 'dao': 80,
+        'com': 70, 'org': 60, 'net': 50, 'io': 75,
+        'xyz': 40, 'app': 65, 'dev': 55, 'tech': 60
+    }
+    tld_score = tld_scores.get(tld.lower(), 30)
+    
+    # Keyword value (simplified)
+    high_value_keywords = ['crypto', 'nft', 'defi', 'web3', 'ai', 'meta', 'blockchain', 'dao']
+    keyword_score = 80 if any(keyword in name.lower() for keyword in high_value_keywords) else 50
+    
+    # Rarity (shorter names are rarer)
+    rarity_score = max(20, 100 - len(name) * 3)
+    
+    # Calculate final score
+    final_score = (length_score * 0.2 + tld_score * 0.3 + keyword_score * 0.3 + rarity_score * 0.2)
+    
+    # Calculate realistic valuation (in USD)
+    base_valuation = 1000
+    if final_score >= 90:
+        valuation = base_valuation * random.uniform(50, 200)
+    elif final_score >= 80:
+        valuation = base_valuation * random.uniform(20, 100)
+    elif final_score >= 70:
+        valuation = base_valuation * random.uniform(10, 50)
+    elif final_score >= 60:
+        valuation = base_valuation * random.uniform(5, 20)
+    else:
+        valuation = base_valuation * random.uniform(1, 10)
+    
+    return {
+        "score": round(final_score, 1),
+        "valuation": int(valuation),
+        "traits": {
+            "length": len(name),
+            "tld": tld,
+            "keyword_value": keyword_score / 100,
+            "rarity": rarity_score / 100,
+            "on_chain_activity": random.uniform(0.3, 0.9)
+        }
+    }
 
 # Create FastAPI app
 app = FastAPI(
@@ -86,71 +190,83 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "doma-advisor-api"}
 
+@app.get("/api/crypto-prices")
+async def get_crypto_prices():
+    """Get real-time cryptocurrency prices."""
+    prices = await get_real_crypto_prices()
+    return prices
+
 @app.get("/api/score", response_model=DomainScore)
 async def get_domain_score(domain: str):
-    """Get domain score and valuation."""
-    # Simple scoring algorithm
-    score = random.uniform(30, 95)
-    valuation = int(score * 1000)  # $1 per point
+    """Get domain score and valuation using realistic algorithms."""
+    # Use realistic domain scoring
+    score_data = calculate_realistic_domain_score(domain)
     
-    traits = {
-        "length": len(domain.split('.')[0]),
-        "tld": domain.split('.')[-1],
-        "keyword_value": random.uniform(0.1, 0.9),
-        "rarity": random.uniform(0.1, 0.9),
-        "on_chain_activity": random.uniform(0.1, 0.9)
-    }
-    
-    reasoning = f"Domain {domain} shows {score:.1f}/100 score based on length, TLD rarity, and keyword value."
+    reasoning = f"Domain {domain} shows {score_data['score']}/100 score based on length ({score_data['traits']['length']} chars), TLD popularity ({score_data['traits']['tld']}), keyword value, and rarity factors."
     
     return DomainScore(
         domain=domain,
-        score=score,
-        valuation=valuation,
-        traits=traits,
+        score=score_data['score'],
+        valuation=score_data['valuation'],
+        traits=score_data['traits'],
         reasoning=reasoning
     )
 
 @app.get("/api/trends", response_model=List[MarketTrend])
 async def get_market_trends(category: str = None, limit: int = 10):
-    """Get market trends and analysis."""
-    trends = [
-        MarketTrend(
+    """Get market trends and analysis with real crypto data."""
+    # Get real crypto prices
+    crypto_prices = await get_real_crypto_prices()
+    
+    # Create trends based on real crypto data
+    trends = []
+    
+    # ETH trend
+    if "ETH" in crypto_prices:
+        eth_data = crypto_prices["ETH"]
+        trends.append(MarketTrend(
             tld="eth",
-            volume_24h=50000000000000000000,
-            price_change_24h=12.5,
-            trending_keywords=["crypto", "web3", "defi"],
-            market_sentiment="bullish"
+            volume_24h=int(eth_data["price"] * 1000000),  # Simulated volume
+            price_change_24h=eth_data["change"],
+            trending_keywords=["crypto", "web3", "defi", "ethereum"],
+            market_sentiment="bullish" if eth_data["change"] > 0 else "bearish"
+        ))
+    
+    # MATIC trend
+    if "MATIC" in crypto_prices:
+        matic_data = crypto_prices["MATIC"]
+        trends.append(MarketTrend(
+            tld="crypto",
+            volume_24h=int(matic_data["price"] * 500000),  # Simulated volume
+            price_change_24h=matic_data["change"],
+            trending_keywords=["polygon", "scaling", "defi"],
+            market_sentiment="bullish" if matic_data["change"] > 0 else "bearish"
+        ))
+    
+    # Add some domain-specific trends
+    trends.extend([
+        MarketTrend(
+            tld="nft",
+            volume_24h=25000000000000000000,
+            price_change_24h=random.uniform(-10, 15),
+            trending_keywords=["art", "collectibles", "gaming"],
+            market_sentiment="neutral"
         ),
         MarketTrend(
             tld="dao",
             volume_24h=30000000000000000000,
-            price_change_24h=8.2,
-            trending_keywords=["governance", "voting"],
+            price_change_24h=random.uniform(-5, 20),
+            trending_keywords=["governance", "voting", "decentralized"],
             market_sentiment="bullish"
-        ),
-        MarketTrend(
-            tld="crypto",
-            volume_24h=40000000000000000000,
-            price_change_24h=-2.1,
-            trending_keywords=["bitcoin", "ethereum"],
-            market_sentiment="neutral"
-        ),
-        MarketTrend(
-            tld="nft",
-            volume_24h=25000000000000000000,
-            price_change_24h=-5.8,
-            trending_keywords=["art", "collectibles"],
-            market_sentiment="bearish"
         ),
         MarketTrend(
             tld="ai",
             volume_24h=35000000000000000000,
-            price_change_24h=18.7,
-            trending_keywords=["machine", "learning"],
+            price_change_24h=random.uniform(5, 25),
+            trending_keywords=["machine", "learning", "artificial"],
             market_sentiment="bullish"
         )
-    ]
+    ])
     
     return trends[:limit]
 
@@ -219,14 +335,38 @@ async def get_portfolio(user_id: str):
             "score": 78,
             "status": "active",
             "purchase_date": "2024-01-05T12:15:00Z"
+        },
+        {
+            "domain": "defi.crypto",
+            "purchase_price": 1200000,
+            "current_value": 1400000,
+            "performance": 16.7,
+            "score": 82,
+            "status": "active",
+            "purchase_date": "2024-01-15T09:45:00Z"
         }
     ]
     
+    # Get current crypto prices for dynamic valuation
+    crypto_prices = await get_real_crypto_prices()
+    eth_price = crypto_prices.get("ETH", {}).get("price", 4000)
+    
+    # Calculate dynamic values based on current ETH price
+    base_multiplier = eth_price / 4000  # Normalize to base ETH price
+    
+    # Update domain values dynamically
+    for domain in domains:
+        domain["current_value"] = int(domain["current_value"] * base_multiplier)
+        domain["performance"] = domain["performance"] * base_multiplier
+        domain["change_24h"] = crypto_prices.get("ETH", {}).get("change", 0)
+    
+    total_value = sum(domain["current_value"] for domain in domains)
+    
     return Portfolio(
         user_id=user_id,
-        total_value=4300000,
-        total_domains=2,
-        performance_24h=2.5,
+        total_value=total_value,
+        total_domains=len(domains),
+        performance_24h=crypto_prices.get("ETH", {}).get("change", 2.5),
         performance_7d=8.7,
         performance_30d=15.2,
         domains=domains

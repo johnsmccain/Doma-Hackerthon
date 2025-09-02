@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { MarketTrends } from '@/components/dashboard/MarketTrends'
 
-export default function TrendsPage() {
+function TrendsPageContent() {
   const [isConnected, setIsConnected] = useState(false)
   const [walletAddress, setWalletAddress] = useState<string>('')
   const searchParams = useSearchParams()
@@ -67,5 +67,20 @@ export default function TrendsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TrendsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <TrendsPageContent />
+    </Suspense>
   )
 }

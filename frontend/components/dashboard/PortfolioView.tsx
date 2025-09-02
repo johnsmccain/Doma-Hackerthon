@@ -27,8 +27,8 @@ const CardTitle = ({ children, className = '' }: { children: React.ReactNode; cl
   </h3>
 )
 
-const CardContent = ({ children }: { children: React.ReactNode }) => (
-  <div className="p-6 pt-0">
+const CardContent = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`p-6 pt-0 ${className}`}>
     {children}
   </div>
 )

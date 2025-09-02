@@ -33,7 +33,7 @@ graph TB
         Q[Smart Contract Interactions]
         R[Transaction Signing]
     end
-    
+     
     subgraph "Data Layer"
         S[PostgreSQL Database]
         T[User Profiles]

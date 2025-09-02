@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { truncateAddress } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import Image from 'next/image'
 
 interface HeaderProps {
   walletAddress: string
@@ -33,7 +34,18 @@ export function Header({ walletAddress, onDisconnect }: HeaderProps) {
       <div className="flex h-full items-center justify-between px-6">
         {/* Left side */}
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold">Dashboard</h1>
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center overflow-hidden">
+              <Image 
+                src="/DomaAdvisor.png" 
+                alt="Doma Advisor Logo" 
+                width={32} 
+                height={32}
+                className="w-8 h-8 object-contain"
+              />
+            </div>
+            <h1 className="text-xl font-semibold">Doma Advisor</h1>
+          </div>
         </div>
 
         {/* Right side */}

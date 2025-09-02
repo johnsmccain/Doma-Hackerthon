@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { RecommendationsList } from '@/components/dashboard/RecommendationsList'
 
-export default function RecommendationsPage() {
+function RecommendationsPageContent() {
   const [isConnected, setIsConnected] = useState(false)
   const [walletAddress, setWalletAddress] = useState<string>('')
   const searchParams = useSearchParams()
@@ -67,5 +67,20 @@ export default function RecommendationsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RecommendationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <RecommendationsPageContent />
+    </Suspense>
   )
 }

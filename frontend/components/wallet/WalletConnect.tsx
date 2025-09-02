@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
-import { Wallet, AlertCircle, Shield } from 'lucide-react'
+import { Wallet, AlertCircle, Shield, CheckCircle, Sparkles, Download, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface WalletConnectProps {
@@ -14,8 +14,22 @@ export function WalletConnect({ onConnect, onDisconnect }: WalletConnectProps) {
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
+  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [hasMetaMask, setHasMetaMask] = useState(false)
+
+  useEffect(() => {
+    // Check if MetaMask is available
+    const checkMetaMask = () => {
+      const hasEthereum = typeof window !== 'undefined' && window.ethereum
+      setHasMetaMask(!!hasEthereum)
+      console.log('MetaMask available:', hasEthereum)
+    }
+    
+    checkMetaMask()
+  }, [])
 
   const connectWallet = async () => {
+    console.log('Attempting to connect wallet...')
     setIsConnecting(true)
     setError(null)
 
@@ -25,36 +39,21 @@ export function WalletConnect({ onConnect, onDisconnect }: WalletConnectProps) {
         throw new Error('MetaMask is not installed. Please install MetaMask to continue.')
       }
 
+      console.log('MetaMask found, requesting accounts...')
+
       // Request account access
       const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts'
       })
+
+      console.log('Accounts received:', accounts)
 
       if (accounts.length === 0) {
         throw new Error('No accounts found. Please connect your wallet.')
       }
 
       const address = accounts[0]
-      
-      // Check if we're on the correct network (Ethereum mainnet or testnet)
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' })
-      
-      // For Doma Protocol, we might need a specific network
-      // For now, we'll accept mainnet (1) and common testnets
-      const supportedNetworks = ['0x1', '0x5', '0xaa36a7', '0x89', '0xa'] // Mainnet, Goerli, Sepolia, Polygon, Optimism
-      
-      if (!supportedNetworks.includes(chainId)) {
-        toast.error('Please switch to a supported network (Ethereum, Polygon, or Optimism)')
-        // Optionally, prompt user to switch networks
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x1' }], // Switch to Ethereum mainnet
-          })
-        } catch (switchError) {
-          console.error('Failed to switch network:', switchError)
-        }
-      }
+      console.log('Selected address:', address)
 
       // Store the connected address
       localStorage.setItem('walletAddress', address)
@@ -62,6 +61,7 @@ export function WalletConnect({ onConnect, onDisconnect }: WalletConnectProps) {
       onConnect(address)
       
       toast.success('Wallet connected successfully!')
+      console.log('Wallet connected successfully')
       
       // Listen for account changes
       window.ethereum.on('accountsChanged', handleAccountsChanged)
@@ -70,6 +70,7 @@ export function WalletConnect({ onConnect, onDisconnect }: WalletConnectProps) {
       window.ethereum.on('chainChanged', handleChainChanged)
 
     } catch (err) {
+      console.error('Wallet connection error:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet'
       setError(errorMessage)
       toast.error(errorMessage)
@@ -78,9 +79,24 @@ export function WalletConnect({ onConnect, onDisconnect }: WalletConnectProps) {
     }
   }
 
+  const connectDemoMode = () => {
+    console.log('Activating demo mode...')
+    const demoAddress = '0x1234567890abcdef1234567890abcdef12345678'
+    localStorage.setItem('walletAddress', demoAddress)
+    localStorage.setItem('demoMode', 'true')
+    setIsConnected(true)
+    setIsDemoMode(true)
+    onConnect(demoAddress)
+    toast.success('Demo mode activated! You can explore the platform without a real wallet.')
+    console.log('Demo mode activated')
+  }
+
   const disconnectWallet = () => {
+    console.log('Disconnecting wallet...')
     localStorage.removeItem('walletAddress')
+    localStorage.removeItem('demoMode')
     setIsConnected(false)
+    setIsDemoMode(false)
     onDisconnect()
     
     // Remove event listeners
@@ -90,9 +106,11 @@ export function WalletConnect({ onConnect, onDisconnect }: WalletConnectProps) {
     }
     
     toast.success('Wallet disconnected')
+    console.log('Wallet disconnected')
   }
 
   const handleAccountsChanged = (accounts: string[]) => {
+    console.log('Accounts changed:', accounts)
     if (accounts.length === 0) {
       // User disconnected their wallet
       disconnectWallet()
@@ -106,71 +124,178 @@ export function WalletConnect({ onConnect, onDisconnect }: WalletConnectProps) {
   }
 
   const handleChainChanged = (chainId: string) => {
+    console.log('Chain changed:', chainId)
     // Reload the page when chain changes
     window.location.reload()
+  }
+
+  const installMetaMask = () => {
+    console.log('Opening MetaMask download page...')
+    window.open('https://metamask.io/download/', '_blank')
   }
 
   useEffect(() => {
     // Check if wallet is already connected
     const savedAddress = localStorage.getItem('walletAddress')
-    if (savedAddress && window.ethereum) {
+    const demoMode = localStorage.getItem('demoMode')
+    
+    console.log('Checking saved wallet state:', { savedAddress, demoMode })
+    
+    if (savedAddress) {
+      if (demoMode === 'true') {
+        console.log('Restoring demo mode...')
+        setIsConnected(true)
+        setIsDemoMode(true)
+        onConnect(savedAddress)
+      } else if (window.ethereum) {
       // Verify the account is still connected
       window.ethereum.request({ method: 'eth_accounts' })
         .then((accounts: string[]) => {
+            console.log('Current accounts:', accounts)
           if (accounts.includes(savedAddress)) {
+              console.log('Restoring wallet connection...')
             setIsConnected(true)
             onConnect(savedAddress)
           } else {
+              console.log('Saved address not found in current accounts')
             localStorage.removeItem('walletAddress')
           }
         })
-        .catch(() => {
+          .catch((err) => {
+            console.error('Error checking accounts:', err)
           localStorage.removeItem('walletAddress')
         })
+      }
     }
   }, [onConnect])
 
+  const handleInstallClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    installMetaMask()
+  }
+
+  const handleDemoClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    connectDemoMode()
+  }
+
+  const handleConnectClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    connectWallet()
+  }
+
+  const handleDisconnectClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    disconnectWallet()
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {!isConnected ? (
+        <div className="space-y-4">
+          {hasMetaMask ? (
         <Button
-          onClick={connectWallet}
+              onClick={handleConnectClick}
           disabled={isConnecting}
-          className="w-full max-w-sm h-12 text-lg font-semibold"
-        >
-          <Wallet className="w-5 h-5 mr-2" />
-          {isConnecting ? 'Connecting...' : 'Connect MetaMask'}
+              className="relative w-full max-w-sm h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+            >
+              {isConnecting ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Connecting...</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <Wallet className="w-6 h-6" />
+                    <Sparkles className="w-3 h-3 absolute -top-1 -right-1 text-yellow-300 animate-pulse" />
+                  </div>
+                  <span>Connect MetaMask</span>
+                </div>
+              )}
         </Button>
       ) : (
         <div className="space-y-3">
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-              <span className="text-green-800 dark:text-green-200 font-medium">
-                Wallet Connected
+              <Button
+                onClick={handleInstallClick}
+                className="relative w-full max-w-sm h-14 text-lg font-semibold bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+              >
+                <div className="flex items-center space-x-3">
+                  <Download className="w-6 h-6" />
+                  <span>Install MetaMask</span>
+                  <ExternalLink className="w-4 h-4" />
+                </div>
+              </Button>
+              
+              <div className="text-center">
+                <div className="text-gray-400 text-sm mb-2">or</div>
+                <Button
+                  onClick={handleDemoClick}
+                  variant="outline"
+                  className="w-full max-w-sm h-12 border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-300"
+                >
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Try Demo Mode</span>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className={`backdrop-blur-sm border rounded-xl p-4 ${
+            isDemoMode 
+              ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-400/30' 
+              : 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-400/30'
+          }`}>
+            <div className="flex items-center space-x-3">
+              <div className={`w-3 h-3 rounded-full animate-pulse ${
+                isDemoMode ? 'bg-yellow-400' : 'bg-green-400'
+              }`}></div>
+              <CheckCircle className={`w-5 h-5 ${
+                isDemoMode ? 'text-yellow-400' : 'text-green-400'
+              }`} />
+              <span className={`font-medium ${
+                isDemoMode ? 'text-yellow-300' : 'text-green-300'
+              }`}>
+                {isDemoMode ? 'Demo Mode Active' : 'Wallet Connected Successfully'}
               </span>
             </div>
+            {isDemoMode && (
+              <p className="text-yellow-200 text-sm mt-2">
+                You're in demo mode. Install MetaMask for real transactions.
+              </p>
+            )}
           </div>
           <Button
-            onClick={disconnectWallet}
+            onClick={handleDisconnectClick}
             variant="outline"
-            className="w-full max-w-sm"
+            className="w-full max-w-sm h-12 border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white transition-all duration-300"
           >
-            Disconnect Wallet
+            {isDemoMode ? 'Exit Demo Mode' : 'Disconnect Wallet'}
           </Button>
         </div>
       )}
 
       {error && (
-        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400 text-sm">
-          <AlertCircle className="w-4 h-4" />
-          <span>{error}</span>
+        <div className="flex items-center space-x-3 bg-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-lg p-4">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <span className="text-red-300 text-sm">{error}</span>
         </div>
       )}
 
-      <div className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-sm">
-        <Shield className="w-4 h-4 inline mr-1" />
-        Your wallet connection is secure and encrypted
+      <div className="flex items-center justify-center space-x-4 text-sm text-gray-400">
+        <div className="flex items-center space-x-2">
+          <Shield className="w-4 h-4" />
+          <span>Secure & Encrypted</span>
+        </div>
+        <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
+        <div className="flex items-center space-x-2">
+          <Sparkles className="w-4 h-4" />
+          <span>Instant Connection</span>
+        </div>
       </div>
     </div>
   )
