@@ -24,19 +24,23 @@ export function DomainSearch() {
     setSearchResult(null)
 
     try {
-      // Search for domain availability and get info from Doma Protocol
-      const [domainScore, domainInfo] = await Promise.all([
+      // Search for domain availability and get comprehensive info from Doma Protocol
+      const [domainScore, domainInfo, domainPrice, crossChainStatus] = await Promise.all([
         domainAPI.getScore(domain),
-        domaAPI.getDomainInfo(domain)
+        domaAPI.getDomainInfo(domain),
+        domaAPI.getDomainPrice(domain),
+        domaAPI.getCrossChainStatus(domain)
       ])
 
       const result = {
         domain: domain,
         score: domainScore,
         info: domainInfo,
-        isAvailable: domainInfo.is_available,
-        price: domainInfo.price,
-        owner: domainInfo.owner
+        price: domainPrice,
+        crossChain: crossChainStatus,
+        isAvailable: domainInfo.is_available || domainInfo.status === 'available',
+        owner: domainInfo.owner,
+        timestamp: new Date().toISOString()
       }
 
       setSearchResult(result)
@@ -146,10 +150,22 @@ export function DomainSearch() {
               <span className="font-medium">{formatCurrency(searchResult.score.valuation / 100)}</span>
             </div>
             
-            {!searchResult.isAvailable && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Current Price</span>
-                <span className="font-medium">{formatCurrency(searchResult.price / 1000000000000000000)} ETH</span>
+            {/* Doma Testnet Pricing */}
+            {searchResult.price && (
+              <div className="space-y-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <div className="text-xs font-medium text-blue-700 dark:text-blue-300">Doma Testnet Pricing</div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Price (ETH)</span>
+                  <span className="font-medium">{searchResult.price.price_eth || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Price (USD)</span>
+                  <span className="font-medium">{formatCurrency(searchResult.price.price_usd || 0)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Pricing Model</span>
+                  <span className="font-medium text-xs">{searchResult.price.pricing_model || 'N/A'}</span>
+                </div>
               </div>
             )}
 
@@ -162,6 +178,22 @@ export function DomainSearch() {
               <span className="text-muted-foreground">Length</span>
               <span className="font-medium">{searchResult.score.traits.length} chars</span>
             </div>
+
+            {/* Cross-Chain Status */}
+            {searchResult.crossChain && (
+              <div className="space-y-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <div className="text-xs font-medium text-green-700 dark:text-green-300">Cross-Chain Status</div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Enabled</span>
+                  <span className="font-medium">{searchResult.crossChain.cross_chain_enabled ? 'Yes' : 'No'}</span>
+                </div>
+                {searchResult.crossChain.supported_chains && (
+                  <div className="text-xs text-muted-foreground">
+                    Supported: {searchResult.crossChain.supported_chains.map((chain: any) => chain.name).join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}

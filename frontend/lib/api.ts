@@ -54,6 +54,38 @@ export interface MarketTrend {
   market_sentiment: 'bullish' | 'bearish' | 'neutral'
 }
 
+export interface TLDMarketData {
+  tld: string
+  category: 'gTLD' | 'ccTLD' | 'nTLD'
+  total_domains: number
+  total_volume_24h: number
+  average_price: number
+  price_change_24h: number
+  market_sentiment: 'bullish' | 'bearish' | 'neutral'
+  trending_keywords: string[]
+  top_domains: Array<{
+    domain: string
+    price: number
+    volume: number
+  }>
+}
+
+export interface TLDInfo {
+  tld: string
+  category: 'gTLD' | 'ccTLD' | 'nTLD'
+  popularity: number
+  market_demand: number
+  price_range: {
+    min: number
+    max: number
+    currency: string
+  }
+  description: string
+  registration_fee?: number
+  renewal_fee?: number
+  transfer_fee?: number
+}
+
 export interface Recommendation {
   domain: string
   action: 'buy' | 'sell' | 'hold'
@@ -157,6 +189,34 @@ export const domaAPI = {
     return response.data
   },
 
+  // Get TLD information and market data
+  getTLDInfo: async (tld: string): Promise<any> => {
+    const response = await api.get(`/api/doma/tld/${encodeURIComponent(tld)}`)
+    return response.data
+  },
+
+  // Get all supported TLDs
+  getSupportedTLDs: async (): Promise<any[]> => {
+    const response = await api.get('/api/doma/tlds')
+    return response.data
+  },
+
+  // Get TLDs by category
+  getTLDsByCategory: async (category: 'gTLD' | 'ccTLD'): Promise<any[]> => {
+    const response = await api.get(`/api/doma/tlds/category/${category}`)
+    return response.data
+  },
+
+  // Get TLD market trends
+  getTLDMarketTrends: async (tld?: string, limit = 20): Promise<any[]> => {
+    const params = new URLSearchParams()
+    if (tld) params.append('tld', tld)
+    params.append('limit', limit.toString())
+    
+    const response = await api.get(`/api/doma/tlds/trends?${params.toString()}`)
+    return response.data
+  },
+
   // Get trending domains from Doma
   getTrendingDomains: async (limit = 20): Promise<any[]> => {
     const response = await api.get(`/api/doma/trending?limit=${limit}`)
@@ -180,6 +240,162 @@ export const domaAPI = {
       wallet_address: walletAddress,
       price,
     })
+    return response.data
+  },
+
+  // New Doma testnet endpoints
+  getNetworkStatus: async (): Promise<any> => {
+    const response = await api.get('/api/doma/network/status')
+    return response.data
+  },
+
+  getDomainPrice: async (domain: string): Promise<any> => {
+    const response = await api.get(`/api/doma/domain/${encodeURIComponent(domain)}/price`)
+    return response.data
+  },
+
+  getMarketData: async (): Promise<any> => {
+    const response = await api.get('/api/doma/market')
+    return response.data
+  },
+
+  getCrossChainStatus: async (domain: string): Promise<any> => {
+    const response = await api.get(`/api/doma/cross-chain/${encodeURIComponent(domain)}`)
+    return response.data
+  },
+
+  getHealthStatus: async (): Promise<any> => {
+    const response = await api.get('/api/doma/health')
+    return response.data
+  },
+
+  executeTrade: async (data: {
+    action: 'buy' | 'sell'
+    domain: string
+    wallet_address: string
+    price: number
+  }): Promise<any> => {
+    const response = await api.post('/api/doma/trade', data)
+    return response.data
+  },
+
+  // Events Poll API
+  pollEvents: async (params?: { limit?: number; eventTypes?: string[]; finalizedOnly?: boolean }): Promise<any> => {
+    const response = await api.get('/v1/poll', { params })
+    return response.data
+  },
+
+  acknowledgeEvents: async (lastEventId: number): Promise<any> => {
+    const response = await api.post(`/v1/poll/ack/${lastEventId}`)
+    return response.data
+  },
+
+  resetEvents: async (eventId: number): Promise<any> => {
+    const response = await api.post(`/v1/poll/reset/${eventId}`)
+    return response.data
+  },
+
+  // Orderbook API
+  createListing: async (data: {
+    orderbook: string
+    chainId: string
+    parameters: any
+    signature: string
+  }): Promise<{ orderId: string }> => {
+    const response = await api.post('/v1/orderbook/list', data)
+    return response.data
+  },
+
+  createOffer: async (data: {
+    orderbook: string
+    chainId: string
+    parameters: any
+    signature: string
+  }): Promise<{ orderId: string }> => {
+    const response = await api.post('/v1/orderbook/offer', data)
+    return response.data
+  },
+
+  getListingFulfillment: async (orderId: string, buyer: string): Promise<any> => {
+    const response = await api.get(`/v1/orderbook/listing/${orderId}/${buyer}`)
+    return response.data
+  },
+
+  getOfferFulfillment: async (orderId: string, fulfiller: string): Promise<any> => {
+    const response = await api.get(`/v1/orderbook/offer/${orderId}/${fulfiller}`)
+    return response.data
+  },
+
+  cancelListing: async (data: { orderId: string; signature: string }): Promise<{ orderId: string }> => {
+    const response = await api.post('/v1/orderbook/listing/cancel', data)
+    return response.data
+  },
+
+  cancelOffer: async (data: { orderId: string; signature: string }): Promise<{ orderId: string }> => {
+    const response = await api.post('/v1/orderbook/offer/cancel', data)
+    return response.data
+  },
+
+  getOrderbookFees: async (orderbook: string, chainId: string, contractAddress: string): Promise<any> => {
+    const response = await api.get(`/v1/orderbook/fee/${orderbook}/${chainId}/${contractAddress}`)
+    return response.data
+  },
+
+  getSupportedCurrencies: async (chainId: string, contractAddress: string, orderbook: string): Promise<any> => {
+    const response = await api.get(`/v1/orderbook/currencies/${chainId}/${contractAddress}/${orderbook}`)
+    return response.data
+  },
+
+  // Fractionalization API
+  fractionalizeDomain: async (data: {
+    tokenId: string
+    fractionalTokenInfo: {
+      name: string
+      symbol: string
+    }
+    minimumBuyoutPrice: number
+  }): Promise<any> => {
+    const response = await api.post('/v1/fractionalization/fractionalize', data)
+    return response.data
+  },
+
+  buyoutDomain: async (tokenId: string): Promise<any> => {
+    const response = await api.post('/v1/fractionalization/buyout', { tokenId })
+    return response.data
+  },
+
+  exchangeFractionalToken: async (data: {
+    fractionalToken: string
+    amount: number
+  }): Promise<any> => {
+    const response = await api.post('/v1/fractionalization/exchange', data)
+    return response.data
+  },
+
+  getBuyoutPrice: async (tokenId: string): Promise<any> => {
+    const response = await api.get(`/v1/fractionalization/buyout-price/${tokenId}`)
+    return response.data
+  },
+
+  getFractionalizationInfo: async (tokenId: string): Promise<any> => {
+    const response = await api.post('/v1/fractionalization/info', { tokenId })
+    return response.data
+  },
+
+  // Smart Contracts API
+  requestTokenization: async (data: {
+    voucher: {
+      names: Array<{
+        sld: string
+        tld: string
+      }>
+      nonce: number
+      expiresAt: number
+      ownerAddress: string
+    }
+    signature: string
+  }): Promise<any> => {
+    const response = await api.post('/v1/smart-contracts/tokenization', data)
     return response.data
   },
 }

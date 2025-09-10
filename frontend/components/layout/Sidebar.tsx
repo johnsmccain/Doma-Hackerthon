@@ -11,7 +11,9 @@ import {
   Wallet, 
   Settings,
   Menu,
-  X
+  X,
+  Globe,
+  Search
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import Image from 'next/image'
@@ -33,9 +35,19 @@ const menuItems = [
     icon: TrendingUp,
   },
   {
+    title: 'TLD Explorer',
+    href: '/tld-explorer',
+    icon: Search,
+  },
+  {
     title: 'Recommendations',
     href: '/recommendations',
     icon: Lightbulb,
+  },
+  {
+    title: 'Doma Testnet',
+    href: '/doma-testnet',
+    icon: Globe,
   },
   {
     title: 'Settings',

@@ -94,6 +94,28 @@ export function DynamicDashboard() {
     staleTime: 50000
   })
 
+  // Fetch Doma testnet status
+  const { data: domaStatus, isLoading: domaLoading, refetch: refetchDoma } = useQuery({
+    queryKey: ['doma-status'],
+    queryFn: async () => {
+      const response = await api.get('/api/doma/network/status')
+      return response.data
+    },
+    refetchInterval: 60000, // Refetch every minute
+    staleTime: 50000
+  })
+
+  // Fetch Doma health status
+  const { data: domaHealth, isLoading: healthLoading, refetch: refetchHealth } = useQuery({
+    queryKey: ['doma-health'],
+    queryFn: async () => {
+      const response = await api.get('/api/doma/health')
+      return response.data
+    },
+    refetchInterval: 120000, // Refetch every 2 minutes
+    staleTime: 100000
+  })
+
   // Fetch domain score
   const { data: domainScore, isLoading: scoreLoading, refetch: refetchScore } = useQuery({
     queryKey: ['domain-score', selectedDomain],
@@ -221,13 +243,13 @@ export function DynamicDashboard() {
                   {cryptoLoading ? '...' : formatCurrency(cryptoPrices?.ETH?.price || 0)}
                 </p>
                 <div className="flex items-center mt-1">
-                  {(cryptoPrices?.ETH?.change ?? 0) >= 0 ? (
+                  {cryptoPrices?.ETH?.change && cryptoPrices.ETH.change >= 0 ? (
                     <ArrowUpRight className="w-4 h-4 text-green-400 mr-1" />
                   ) : (
                     <ArrowDownRight className="w-4 h-4 text-red-400 mr-1" />
                   )}
-                  <span className={`text-sm ${(cryptoPrices?.ETH?.change ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {cryptoLoading ? '...' : formatPercentage(cryptoPrices?.ETH?.change ?? 0)}
+                  <span className={`text-sm ${cryptoPrices?.ETH?.change && cryptoPrices.ETH.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {cryptoLoading ? '...' : formatPercentage(cryptoPrices?.ETH?.change || 0)}
                   </span>
                 </div>
               </div>
@@ -309,6 +331,97 @@ export function DynamicDashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Doma Testnet Status */}
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center justify-between">
+              <div className="flex items-center">
+                <Activity className="w-5 h-5 mr-2" />
+                Doma Testnet Status
+              </div>
+              <div className="flex items-center space-x-2">
+                <a
+                  href="/doma-testnet"
+                  className="text-sm text-purple-300 hover:text-purple-200 transition-colors"
+                >
+                  View Details →
+                </a>
+                <span className="text-purple-300">|</span>
+                <a
+                  href="/doma-testnet#events"
+                  className="text-sm text-purple-300 hover:text-purple-200 transition-colors"
+                >
+                  Events →
+                </a>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {domaLoading || healthLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
+                  <p className="text-gray-400 mt-2">Loading status...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Network Status */}
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-3 h-3 rounded-full ${domaStatus?.status === 'connected' ? 'bg-green-400' : 'bg-red-400'}`} />
+                      <span className="text-white font-medium">Network Status</span>
+                    </div>
+                    <Badge variant={domaStatus?.status === 'connected' ? 'default' : 'destructive'}>
+                      {domaStatus?.status || 'Unknown'}
+                    </Badge>
+                  </div>
+
+                  {/* Chain Information */}
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-white/5 rounded-lg">
+                    <div>
+                      <span className="text-gray-400 text-sm">Chain ID:</span>
+                      <span className="ml-2 text-white font-mono">{domaStatus?.chain_id || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Latest Block:</span>
+                      <span className="ml-2 text-white font-mono">{domaStatus?.latest_block?.toLocaleString() || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Gas Price:</span>
+                      <span className="ml-2 text-white font-mono">{domaStatus?.gas_price_gwei || 'N/A'} Gwei</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-sm">Currency:</span>
+                      <span className="ml-2 text-white font-mono">{domaStatus?.currency || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  {/* Health Status */}
+                  <div className="p-4 bg-white/5 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-white font-medium">Integration Health</span>
+                      <Badge variant={domaHealth?.status === 'healthy' ? 'default' : 'destructive'}>
+                        {domaHealth?.status || 'Unknown'}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {domaHealth?.checks && Object.entries(domaHealth.checks).map(([key, value]) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${value ? 'bg-green-400' : 'bg-red-400'}`} />
+                          <span className="text-gray-400">{key.replace(/_/g, ' ')}:</span>
+                          <span className={value ? 'text-green-400' : 'text-red-400'}>
+                            {value ? 'OK' : 'Failed'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

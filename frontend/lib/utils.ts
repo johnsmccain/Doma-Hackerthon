@@ -91,6 +91,32 @@ export function extractTLD(domain: string): string {
   return parts[parts.length - 1] || ""
 }
 
+export function validateTLD(tld: string): boolean {
+  // Import the TLD service to check if TLD is supported
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { tldService } = require('./tld-service')
+    return tldService.isTLDSupported(tld)
+  } catch {
+    // Fallback to basic validation if service is not available
+    return /^[a-z]{2,}$/i.test(tld)
+  }
+}
+
+export function getTLDCategory(tld: string): 'gTLD' | 'ccTLD' | 'nTLD' | 'unknown' {
+  try {
+    const { tldService } = require('./tld-service')
+    const tldInfo = tldService.getTLDInfo(tld)
+    return tldInfo?.category || 'unknown'
+  } catch {
+    // Fallback logic
+    const { SUPPORTED_TLD_LIST } = require('./tld-list')
+    if (SUPPORTED_TLD_LIST.gTLDs.includes(tld.toLowerCase())) return 'gTLD'
+    if (SUPPORTED_TLD_LIST.ccTLDs.includes(tld.toLowerCase())) return 'ccTLD'
+    return 'unknown'
+  }
+}
+
 export function extractName(domain: string): string {
   const parts = domain.split(".")
   return parts.slice(0, -1).join(".")
